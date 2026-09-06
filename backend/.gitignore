@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Environment variables (สำคัญมาก)
+.env
+.env.*
+
+# Build & Cache
+dist/
+build/
+.vite/
+
+# Editor & OS files
+.vscode/
+.idea/
+.DS_Store
