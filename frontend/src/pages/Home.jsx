@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import MovieCard from '../components/MovieCard.jsx';
-import { sampleMovies } from '../data/sampleMovies.js';
-import { getTrendingMovies } from '../services/api.js';
+import { getMovies } from '../services/api.js';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -10,9 +9,10 @@ export default function Home() {
   const moodQuery = searchParams.get('q') ?? '';
 
   const [heroQuery, setHeroQuery] = useState(moodQuery);
-  const [movies, setMovies] = useState(sampleMovies);
-  const [cacheSource, setCacheSource] = useState('preview');
+  const [movies, setMovies] = useState([]);
+  const [cacheSource, setCacheSource] = useState('mongodb');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setHeroQuery(moodQuery);
@@ -21,29 +21,25 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadTrending() {
+    async function loadMovies() {
       setLoading(true);
+      setError('');
       try {
-        const result = await getTrendingMovies();
+        const result = await getMovies();
         if (cancelled) return;
-        if (result.movies.length > 0) {
-          setMovies(result.movies);
-          setCacheSource(result.source);
-        } else {
-          setMovies(sampleMovies);
-          setCacheSource('preview');
-        }
+        setMovies(result.movies);
+        setCacheSource(result.source);
       } catch {
         if (!cancelled) {
-          setMovies(sampleMovies);
-          setCacheSource('preview');
+          setMovies([]);
+          setError('Could not load movies. Start the backend, then refresh.');
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
-    loadTrending();
+    loadMovies();
     return () => {
       cancelled = true;
     };
@@ -123,7 +119,7 @@ export default function Home() {
           <div>
             <h2 className="font-display text-3xl text-white">Trending movies</h2>
             <p className="mt-1 text-sm text-zinc-400">
-              High-traffic shelf designed to hit Redis first, then MongoDB.
+              Loaded from MongoDB via GET /api/movies.
             </p>
           </div>
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300">
@@ -140,9 +136,15 @@ export default function Home() {
               />
             ))}
           </div>
+        ) : error ? (
+          <p className="rounded-2xl border border-white/10 bg-white/5 px-5 py-10 text-center text-zinc-400">
+            {error}
+          </p>
         ) : visibleMovies.length === 0 ? (
           <p className="rounded-2xl border border-white/10 bg-white/5 px-5 py-10 text-center text-zinc-400">
-            No titles matched that mood yet. Try another feeling.
+            {moodQuery
+              ? 'No titles matched that mood yet. Try another feeling.'
+              : 'No movies in the database yet. Run npm run seed in backend.'}
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">

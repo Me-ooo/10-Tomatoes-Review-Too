@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const { cache } = require('./middleware/cache');
+const { moviesRouter } = require('./routes/movies');
 
 const app = express();
 
@@ -13,16 +13,11 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.get(
-  '/api/movies/trending',
-  cache({ key: 'movies:trending', ttl: Number(process.env.REDIS_TTL_SECONDS || 300) }),
-  (_req, res) => {
-    res.json({
-      source: 'placeholder',
-      movies: [],
-      message: 'Trending route will query MongoDB in Phase 2.',
-    });
-  }
-);
+app.use('/api/movies', moviesRouter);
+
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ message: 'Internal server error' });
+});
 
 module.exports = { app };

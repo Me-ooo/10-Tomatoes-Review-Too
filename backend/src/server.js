@@ -8,7 +8,12 @@ const port = Number(process.env.PORT || 5000);
 
 async function start() {
   await connectDatabase();
-  await connectRedis();
+
+  try {
+    await connectRedis();
+  } catch (err) {
+    console.warn('Redis unavailable, continuing without cache:', err.message);
+  }
 
   app.listen(port, () => {
     console.log(`API listening on port ${port}`);

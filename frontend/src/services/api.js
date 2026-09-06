@@ -8,8 +8,16 @@ const api = axios.create({
   },
 });
 
+export async function getMovies() {
+  const { data } = await api.get('/api/movies');
+  return {
+    movies: data.movies ?? [],
+    source: 'mongodb',
+  };
+}
+
 export async function getTrendingMovies() {
-  const { data } = await api.get('/api/movies/trending', { timeout: 2500 });
+  const { data } = await api.get('/api/movies/trending');
   return {
     movies: data.movies ?? [],
     source: data.source ?? 'api',
