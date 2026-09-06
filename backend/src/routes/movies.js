@@ -1,9 +1,11 @@
 const express = require('express');
-const { cache } = require('../middleware/cache');
+const { cacheMiddleware } = require('../middlewares/cacheMiddleware');
+const { verifyToken, isAdmin } = require('../middlewares/authMiddleware');
 const {
   listMovies,
   listTrending,
   getMovie,
+  createMovie,
 } = require('../controllers/moviesController');
 
 const router = express.Router();
@@ -14,12 +16,9 @@ function asyncHandler(handler) {
   };
 }
 
-router.get('/', asyncHandler(listMovies));
-router.get(
-  '/trending',
-  cache({ key: 'movies:trending', ttl: Number(process.env.REDIS_TTL_SECONDS || 300) }),
-  asyncHandler(listTrending)
-);
+router.get('/', cacheMiddleware, asyncHandler(listMovies));
+router.get('/trending', cacheMiddleware, asyncHandler(listTrending));
 router.get('/:id', asyncHandler(getMovie));
+router.post('/', verifyToken, isAdmin, asyncHandler(createMovie));
 
 module.exports = { moviesRouter: router };

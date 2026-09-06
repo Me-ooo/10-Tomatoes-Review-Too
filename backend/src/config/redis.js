@@ -13,6 +13,12 @@ function createRedisClient() {
     maxRetriesPerRequest: 3,
     enableReadyCheck: true,
     lazyConnect: true,
+    retryStrategy(times) {
+      if (times > 8) {
+        return null;
+      }
+      return Math.min(times * 200, 2000);
+    },
   });
 
   redis.on('connect', () => {
@@ -25,6 +31,10 @@ function createRedisClient() {
 
   redis.on('error', (err) => {
     console.error('Redis error:', err.message);
+  });
+
+  redis.on('end', () => {
+    console.warn('Redis connection closed');
   });
 
   return redis;
@@ -48,6 +58,10 @@ function getRedis() {
   return redis;
 }
 
+function isRedisReady() {
+  return Boolean(redis && redis.status === 'ready');
+}
+
 async function closeRedis() {
   if (!redis) {
     return;
@@ -61,5 +75,6 @@ module.exports = {
   createRedisClient,
   connectRedis,
   getRedis,
+  isRedisReady,
   closeRedis,
 };

@@ -3,7 +3,7 @@ const {
   getRedisClient,
   invalidateCache,
   getCacheKey,
-} = require('./cacheMiddleware');
+} = require('../middlewares/cacheMiddleware');
 
 module.exports = {
   cacheMiddleware,
@@ -11,5 +11,4 @@ module.exports = {
   getRedisClient,
   invalidateCache,
   getCacheKey,
-  cacheKeyFromRequest: getCacheKey,
 };
