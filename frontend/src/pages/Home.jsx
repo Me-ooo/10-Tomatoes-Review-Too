@@ -51,13 +51,19 @@ export default function Home() {
 
   const visibleMovies = useMemo(() => {
     if (!moodQuery) return movies;
-    const needle = moodQuery.toLowerCase();
-    return movies.filter((movie) =>
-      [movie.title, movie.synopsis, ...(movie.genres ?? [])]
+    const tokens = moodQuery
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((token) => token.length > 2 && !['the', 'and', 'for', 'about', 'like', 'movie', 'film'].includes(token));
+
+    if (tokens.length === 0) return movies;
+
+    return movies.filter((movie) => {
+      const haystack = [movie.title, movie.synopsis, ...(movie.genres ?? [])]
         .join(' ')
-        .toLowerCase()
-        .includes(needle)
-    );
+        .toLowerCase();
+      return tokens.some((token) => haystack.includes(token));
+    });
   }, [movies, moodQuery]);
 
   function handleHeroSearch(event) {

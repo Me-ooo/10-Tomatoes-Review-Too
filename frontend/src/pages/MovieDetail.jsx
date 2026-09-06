@@ -7,18 +7,22 @@ import { getMovieById, submitReview } from '../services/api.js';
 export default function MovieDetail() {
   const { id } = useParams();
   const [movie, setMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
+      setLoading(true);
       try {
         const data = await getMovieById(id);
         if (!cancelled) setMovie(data);
       } catch {
-        const fallback = sampleMovies.find((item) => item._id === id);
-        if (!cancelled) setMovie(fallback ?? null);
+        const fallback = sampleMovies.find((item) => item._id === id) ?? null;
+        if (!cancelled) setMovie(fallback);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -27,6 +31,14 @@ export default function MovieDetail() {
       cancelled = true;
     };
   }, [id]);
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-20 text-center text-zinc-400">
+        Loading title…
+      </main>
+    );
+  }
 
   if (!movie) {
     return (
