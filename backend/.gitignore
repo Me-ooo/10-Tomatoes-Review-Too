@@ -21,3 +21,5 @@ build/
 *.log
 .DS_Store
 backend/.env
+frontend/.env
+
