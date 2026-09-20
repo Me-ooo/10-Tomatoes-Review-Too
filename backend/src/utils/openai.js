@@ -14,7 +14,8 @@ export async function generateEmbedding(text) {
         'Content-Type': 'application/json'
       },
       // บังคับใช้ IPv4 แก้บั๊ก getaddrinfo ENOTFOUND บน Windows
-      httpsAgent: new https.Agent({ family: 4 })
+      httpsAgent: new https.Agent({ family: 4 }),
+      timeout: 10000 // เพิ่ม Timeout 10 วินาที
     });
 
     const result = response.data;
@@ -26,7 +27,15 @@ export async function generateEmbedding(text) {
     return result;
 
   } catch (error) {
-    console.error(`Failed to connect to Hugging Face API: ${error.message}`);
-    throw new Error(`Embedding generation failed: ${error.message}`);
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      console.error(`Network error connecting to Hugging Face API: ${error.message}`);
+      throw new Error('Network error: Unable to reach the API server.');
+    } else if (error.code === 'ECONNABORTED') {
+      console.error(`Timeout error connecting to Hugging Face API: ${error.message}`);
+      throw new Error('Timeout error: The API request took too long.');
+    } else {
+      console.error(`Failed to connect to Hugging Face API: ${error.message}`);
+      throw new Error(`Embedding generation failed: ${error.message}`);
+    }
   }
 }
