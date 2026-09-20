@@ -5,7 +5,7 @@ import https from 'https';
 dotenv.config();
 
 export async function generateEmbedding(text) {
-  const url = 'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2';
+  const url = 'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2';
 
   try {
     const response = await axios.post(url, { inputs: text }, {
