@@ -1,6 +1,7 @@
 {
   "name": "smart-movie-review-backend",
   "version": "1.0.0",
+  "type": "module",
   "description": "Backend for Smart Movie Review Community and Recommendation Platform",
   "main": "src/server.js",
   "scripts": {
