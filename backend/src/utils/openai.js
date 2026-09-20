@@ -5,8 +5,8 @@ import https from 'https';
 dotenv.config();
 
 export async function generateEmbedding(text) {
-  // Use Hugging Face Serverless Router API to prevent DNS ENOTFOUND issues on Render
-  const url = 'https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2';
+  // Use Hugging Face Serverless Router API with feature-extraction pipeline
+  const url = 'https://router.huggingface.co/hf-inference/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2';
 
   try {
     const response = await axios.post(
