@@ -26,10 +26,7 @@ export async function generateEmbedding(text) {
     return result;
 
   } catch (error) {
-    console.warn(`\n แจ้งเตือน: ไม่สามารถเชื่อมต่อ Hugging Face ได้ (${error.message})`);
-    console.warn(`ระบบจะสุ่ม Vector (384 มิติ) ชั่วคราวแทน เพื่อให้ Seed รันจบและนำไป Deploy ต่อได้`);
-
-    // สร้าง Array สุ่มตัวเลข 384 ชุด (Mock Data)
-    return Array.from({ length: 384 }, () => Math.random() * 2 - 1);
+    console.error(`Failed to connect to Hugging Face API: ${error.message}`);
+    throw new Error(`Embedding generation failed: ${error.message}`);
   }
 }
