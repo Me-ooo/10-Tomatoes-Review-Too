@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 
 function TomatoMark() {
   return (
@@ -13,6 +14,7 @@ function TomatoMark() {
 export default function Navbar() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
+  const { user, logout } = useAuth();
 
   function handleSearch(event) {
     event.preventDefault();
@@ -21,7 +23,12 @@ export default function Navbar() {
       navigate('/');
       return;
     }
-    navigate(`/?q=${encodeURIComponent(q)}`);
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+  }
+
+  function handleLogout() {
+    logout();
+    navigate('/');
   }
 
   return (
@@ -60,22 +67,36 @@ export default function Navbar() {
         </form>
 
         <nav className="ml-auto flex shrink-0 items-center gap-2">
-          <NavLink
-            to="/login"
-            className={({ isActive }) =>
-              `rounded-full px-3 py-2 text-sm font-medium transition ${
-                isActive ? 'text-white' : 'text-zinc-300 hover:text-white'
-              }`
-            }
-          >
-            Login
-          </NavLink>
-          <NavLink
-            to="/register"
-            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-zinc-200"
-          >
-            Register
-          </NavLink>
+          {user ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-zinc-300">Hi, {user.username}</span>
+              <button
+                onClick={handleLogout}
+                className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <>
+              <NavLink
+                to="/login"
+                className={({ isActive }) =>
+                  `rounded-full px-3 py-2 text-sm font-medium transition ${
+                    isActive ? 'text-white' : 'text-zinc-300 hover:text-white'
+                  }`
+                }
+              >
+                Login
+              </NavLink>
+              <NavLink
+                to="/register"
+                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-zinc-200"
+              >
+                Register
+              </NavLink>
+            </>
+          )}
         </nav>
       </div>
 

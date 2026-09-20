@@ -1,12 +1,29 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Login() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    setError('');
+    setLoading(true);
+    
+    try {
+      await login(email, password);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -19,6 +36,12 @@ export default function Login() {
         <p className="mt-2 text-sm text-zinc-400">
           Sign in to rate films and keep your watchlist.
         </p>
+
+        {error && (
+          <div className="mt-4 rounded-xl bg-tomato/20 p-3 text-sm text-tomato">
+            {error}
+          </div>
+        )}
 
         <label className="mt-6 block text-sm text-zinc-300">
           Email
@@ -44,9 +67,10 @@ export default function Login() {
 
         <button
           type="submit"
-          className="mt-6 w-full rounded-xl bg-tomato py-2.5 text-sm font-semibold text-white hover:bg-tomato-dark"
+          disabled={loading}
+          className="mt-6 w-full rounded-xl bg-tomato py-2.5 text-sm font-semibold text-white transition hover:bg-tomato-dark disabled:opacity-50"
         >
-          Login
+          {loading ? 'Logging in...' : 'Login'}
         </button>
 
         <p className="mt-4 text-center text-sm text-zinc-400">

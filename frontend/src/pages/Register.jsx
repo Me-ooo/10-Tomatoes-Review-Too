@@ -1,13 +1,30 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Register() {
+  const navigate = useNavigate();
+  const { register } = useAuth();
+
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await register(username, email, password);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -20,6 +37,12 @@ export default function Register() {
         <p className="mt-2 text-sm text-zinc-400">
           Users can review. Admins can manage the catalog.
         </p>
+
+        {error && (
+          <div className="mt-4 rounded-xl bg-tomato/20 p-3 text-sm text-tomato">
+            {error}
+          </div>
+        )}
 
         <label className="mt-6 block text-sm text-zinc-300">
           Username
@@ -56,9 +79,10 @@ export default function Register() {
 
         <button
           type="submit"
-          className="mt-6 w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-ink hover:bg-zinc-200"
+          disabled={loading}
+          className="mt-6 w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-ink transition hover:bg-zinc-200 disabled:opacity-50"
         >
-          Register
+          {loading ? 'Registering...' : 'Register'}
         </button>
 
         <p className="mt-4 text-center text-sm text-zinc-400">

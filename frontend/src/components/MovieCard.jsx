@@ -8,7 +8,7 @@ export default function MovieCard({ movie }) {
     >
       <div className="aspect-2/3 overflow-hidden">
         <img
-          src={movie.posterUrl}
+          src={movie.posterUrl || `https://via.placeholder.com/500x750/101014/FFFFFF?text=${encodeURIComponent(movie.title)}`}
           alt={movie.title}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />

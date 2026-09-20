@@ -4,7 +4,7 @@ import Movie from './src/models/movie.model.js';
 import { generateEmbedding } from './src/utils/openai.js';
 
 const fetchMoviesFromTMDB = async () => {
-  const url = 'https://api.themoviedb.org/3/movie/popular?language=th-TH&page=1';
+  let allMovies = [];
   const options = {
     method: 'GET',
     headers: {
@@ -14,12 +14,16 @@ const fetchMoviesFromTMDB = async () => {
   };
 
   try {
-    const response = await fetch(url, options);
-    if (!response.ok) {
-      throw new Error(`TMDB API Error: ${response.status} ${response.statusText}`);
+    for (let page = 1; page <= 5; page++) {
+      const url = `https://api.themoviedb.org/3/movie/popular?language=th-TH&page=${page}`;
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`TMDB API Error: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      allMovies = allMovies.concat(data.results);
     }
-    const data = await response.json();
-    return data.results.slice(0, 20); // จำกัดแค่ 20 เรื่องแรก
+    return allMovies;
   } catch (error) {
     console.error('Error fetching movies from TMDB:', error);
     throw error;

@@ -24,6 +24,11 @@ export async function getMovieById(id) {
   return data;
 }
 
+export async function getMovieReviews(id) {
+  const { data } = await api.get(`/api/movies/${id}/reviews`);
+  return data.reviews ?? [];
+}
+
 export async function semanticSearch(query) {
   const { data } = await api.get('/api/movies/search', {
     params: { q: query },
@@ -31,10 +36,26 @@ export async function semanticSearch(query) {
   return data.movies ?? [];
 }
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export async function loginUser(credentials) {
+  const { data } = await api.post('/api/auth/login', credentials);
+  return data;
+}
+
+export async function registerUser(userData) {
+  const { data } = await api.post('/api/auth/register', userData);
+  return data;
+}
+
 export async function submitReview(movieId, payload) {
-  const { data } = await api.post(`/api/movies/${movieId}/reviews`, payload, {
-    timeout: 2500,
-  });
+  const { data } = await api.post(`/api/reviews`, { movieId, ...payload });
   return data;
 }
 

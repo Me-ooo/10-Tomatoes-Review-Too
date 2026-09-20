@@ -1,14 +1,18 @@
-require('dotenv').config();
-
-const { app } = require('./app');
-const { connectDatabase } = require('./config/database');
-const { connectRedis } = require('./config/redis');
+import 'dotenv/config';
+import { app } from './app.js';
+import { connectDatabase } from './config/database.js';
+import { connectRedis } from './config/redis.js';
 
 const port = Number(process.env.PORT || 5000);
 
 async function start() {
   await connectDatabase();
-  await connectRedis();
+  
+  try {
+    await connectRedis();
+  } catch (err) {
+    console.warn('Redis connection failed, bypassing cache');
+  }
 
   app.listen(port, () => {
     console.log(`API listening on port ${port}`);

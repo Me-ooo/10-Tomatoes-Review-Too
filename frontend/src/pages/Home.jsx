@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import MovieCard from '../components/MovieCard.jsx';
-import { sampleMovies } from '../data/sampleMovies.js';
 import { getTrendingMovies } from '../services/api.js';
 
 export default function Home() {
@@ -10,8 +9,8 @@ export default function Home() {
   const moodQuery = searchParams.get('q') ?? '';
 
   const [heroQuery, setHeroQuery] = useState(moodQuery);
-  const [movies, setMovies] = useState(sampleMovies);
-  const [cacheSource, setCacheSource] = useState('preview');
+  const [movies, setMovies] = useState([]);
+  const [cacheSource, setCacheSource] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,17 +25,12 @@ export default function Home() {
       try {
         const result = await getTrendingMovies();
         if (cancelled) return;
-        if (result.movies.length > 0) {
-          setMovies(result.movies);
-          setCacheSource(result.source);
-        } else {
-          setMovies(sampleMovies);
-          setCacheSource('preview');
-        }
+        setMovies(result.movies || []);
+        setCacheSource(result.source || 'mongodb');
       } catch {
         if (!cancelled) {
-          setMovies(sampleMovies);
-          setCacheSource('preview');
+          setMovies([]);
+          setCacheSource('error');
         }
       } finally {
         if (!cancelled) setLoading(false);

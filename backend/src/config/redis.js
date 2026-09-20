@@ -1,8 +1,8 @@
-const Redis = require('ioredis');
+import Redis from 'ioredis';
 
 let redis = null;
 
-function createRedisClient() {
+export function createRedisClient() {
   if (redis) {
     return redis;
   }
@@ -24,13 +24,14 @@ function createRedisClient() {
   });
 
   redis.on('error', (err) => {
-    console.error('Redis error:', err.message);
+    // Suppressing noisy reconnect errors; connection issues are handled gracefully in server.js
+    // console.warn('Redis error:', err.message);
   });
 
   return redis;
 }
 
-async function connectRedis() {
+export async function connectRedis() {
   const client = createRedisClient();
 
   if (client.status === 'wait') {
@@ -40,7 +41,7 @@ async function connectRedis() {
   return client;
 }
 
-function getRedis() {
+export function getRedis() {
   if (!redis) {
     return createRedisClient();
   }
@@ -48,7 +49,7 @@ function getRedis() {
   return redis;
 }
 
-async function closeRedis() {
+export async function closeRedis() {
   if (!redis) {
     return;
   }
@@ -56,10 +57,3 @@ async function closeRedis() {
   await redis.quit();
   redis = null;
 }
-
-module.exports = {
-  createRedisClient,
-  connectRedis,
-  getRedis,
-  closeRedis,
-};

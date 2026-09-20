@@ -1,8 +1,8 @@
-const { getRedis } = require('../config/redis');
+import { getRedis } from '../config/redis.js';
 
 const DEFAULT_TTL = Number(process.env.REDIS_TTL_SECONDS || 300);
 
-function cacheKeyFromRequest(req) {
+export function cacheKeyFromRequest(req) {
   const path = req.originalUrl || req.url;
   return `cache:${req.method}:${path}`;
 }
@@ -11,7 +11,7 @@ function cacheKeyFromRequest(req) {
  * Redis-first cache for high-traffic GET routes.
  * Example: app.get('/api/movies/trending', cache({ key: 'movies:trending' }), handler)
  */
-function cache(options = {}) {
+export function cache(options = {}) {
   const ttl = options.ttl ?? DEFAULT_TTL;
   const keyFn =
     typeof options.key === 'function'
@@ -26,6 +26,10 @@ function cache(options = {}) {
     }
 
     const redis = getRedis();
+    if (redis.status !== 'ready') {
+      return next();
+    }
+    
     const key = keyFn(req);
 
     try {
@@ -58,7 +62,7 @@ function cache(options = {}) {
   };
 }
 
-async function invalidateCache(keys) {
+export async function invalidateCache(keys) {
   const redis = getRedis();
   const list = Array.isArray(keys) ? keys : [keys];
 
@@ -68,9 +72,3 @@ async function invalidateCache(keys) {
 
   await redis.del(...list);
 }
-
-module.exports = {
-  cache,
-  invalidateCache,
-  cacheKeyFromRequest,
-};

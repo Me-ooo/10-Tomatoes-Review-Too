@@ -18,8 +18,8 @@ export default function ReviewForm({ onSubmit }) {
       setStatus('Review submitted. Thanks for sharing your take.');
       setText('');
       setRating(0);
-    } catch {
-      setStatus('Could not reach the API yet — your review is saved locally for this demo.');
+    } catch (err) {
+      setStatus(err.response?.data?.message || err.message || 'Failed to submit review.');
     }
   }
 
