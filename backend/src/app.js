@@ -7,6 +7,8 @@ import authRoutes from './routes/auth.route.js';
 
 import reviewRoutes from './routes/review.route.js';
 
+import adminRoutes from './routes/admin.route.js';
+
 const app = express();
 
 app.use(helmet());
@@ -24,5 +26,6 @@ app.get('/health', (_req, res) => {
 app.use('/api/movies', movieRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', reviewRoutes);
+app.use('/api/admin', adminRoutes);
 
 export { app };

@@ -63,7 +63,11 @@ export default function Home() {
   function handleHeroSearch(event) {
     event.preventDefault();
     const q = heroQuery.trim();
-    navigate(q ? `/?q=${encodeURIComponent(q)}` : '/');
+    if (!q) {
+      navigate('/');
+      return;
+    }
+    navigate(`/search?q=${encodeURIComponent(q)}`);
   }
 
   return (

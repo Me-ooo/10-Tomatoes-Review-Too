@@ -70,6 +70,16 @@ export default function Navbar() {
           {user ? (
             <div className="flex items-center gap-3">
               <span className="text-sm text-zinc-300">Hi, {user.username}</span>
+              
+              {user.role === 'admin' && (
+                <NavLink
+                  to="/admin"
+                  className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                >
+                  Admin
+                </NavLink>
+              )}
+
               <button
                 onClick={handleLogout}
                 className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"

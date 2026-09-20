@@ -5,6 +5,7 @@ import Login from './pages/Login.jsx';
 import MovieDetail from './pages/MovieDetail.jsx';
 import Register from './pages/Register.jsx';
 import SearchResults from './pages/SearchResults.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/movies/:id" element={<MovieDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
         </div>
       </BrowserRouter>

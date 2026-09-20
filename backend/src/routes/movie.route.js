@@ -2,14 +2,10 @@ import express from 'express';
 import { 
   getTrendingMovies, 
   getMovieById,
-  searchMovies,
-  createMovie,
-  updateMovie,
-  deleteMovie
+  searchMovies
 } from '../controllers/movie.controller.js';
 import { cache } from '../middleware/cache.js';
 import { protect } from '../middlewares/auth.middleware.js';
-import { admin } from '../middleware/admin.js';
 
 const router = express.Router();
 
@@ -26,10 +22,5 @@ router.get('/search', searchMovies);
 
 // GET /api/movies/:id
 router.get('/:id', getMovieById);
-
-// Admin Routes
-router.post('/', protect, admin, createMovie);
-router.put('/:id', protect, admin, updateMovie);
-router.delete('/:id', protect, admin, deleteMovie);
 
 export default router;
