@@ -1,6 +1,11 @@
 import dotenv from 'dotenv';
 import axios from 'axios';
 import https from 'https';
+import dns from 'dns';
+
+// Force Node.js to prioritize IPv4 over IPv6 for all DNS lookups
+// This fixes 'getaddrinfo ENOTFOUND' issues specifically on Render and Node v17+
+dns.setDefaultResultOrder('ipv4first');
 
 dotenv.config();
 
