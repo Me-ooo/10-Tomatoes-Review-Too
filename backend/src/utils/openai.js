@@ -5,8 +5,8 @@ import https from 'https';
 dotenv.config();
 
 export async function generateEmbedding(text) {
-  // Use Hugging Face Serverless Router API with feature-extraction pipeline
-  const url = 'https://router.huggingface.co/hf-inference/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2';
+  // Revert back to api-inference.huggingface.co to resolve "Model not supported by provider hf-inference" error
+  const url = 'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2';
 
   try {
     const response = await axios.post(
