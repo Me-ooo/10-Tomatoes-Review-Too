@@ -84,25 +84,42 @@ export const searchMovies = async (req, res) => {
       return res.status(400).json({ message: 'Search query is required' });
     }
 
-    const embedding = await generateEmbedding(q);
+    let movies = [];
 
-    const movies = await Movie.aggregate([
-      {
-        $vectorSearch: {
-          index: "vector_index",
-          path: "embedding",
-          queryVector: embedding,
-          numCandidates: 100,
-          limit: 10
+    try {
+      // พยายามใช้งาน Vector Search ก่อน
+      const embedding = await generateEmbedding(q);
+      movies = await Movie.aggregate([
+        {
+          $vectorSearch: {
+            index: "vector_index",
+            path: "embedding",
+            queryVector: embedding,
+            numCandidates: 100,
+            limit: 10
+          }
+        },
+        {
+          $project: {
+            embedding: 0,
+            score: { $meta: "vectorSearchScore" }
+          }
         }
-      },
-      {
-        $project: {
-          embedding: 0,
-          score: { $meta: "vectorSearchScore" }
-        }
-      }
-    ]);
+      ]);
+    } catch (embedError) {
+      console.warn(`Vector search failed (${embedError.message}), falling back to keyword search`);
+      // Fallback: ใช้ Regular Expression ค้นหาใน title และ synopsis
+      const regex = new RegExp(q, 'i');
+      movies = await Movie.find({
+        $or: [
+          { title: regex },
+          { synopsis: regex },
+          { director: regex }
+        ]
+      })
+      .limit(10)
+      .select('-embedding');
+    }
 
     res.status(200).json({ movies });
   } catch (error) {
