@@ -44,17 +44,32 @@ export const searchMovies = async (req, res) => {
       return res.status(400).json({ message: 'Search query is required' });
     }
 
-    const regex = new RegExp(q, 'i');
-    
-    // 1. ดึงผลลัพธ์จาก Keyword Search (น้ำหนัก 30%)
+    // 1. ตรวจสอบลักษณะคำค้นหา (Query Analysis)
+    const wordsCount = q.trim().split(/\s+/).length;
+    const isShortQuery = wordsCount < 3 || q.trim().length < 15 || q.includes(',');
+
+    // 2. ปรับน้ำหนัก (Dynamic Weights)
+    const keywordWeight = isShortQuery ? 1.0 : 0.3;
+    const vectorWeight = isShortQuery ? 0.0 : 0.7;
+
+    let regexTerms = q.includes(',') 
+      ? q.split(',').map(t => t.trim()).filter(t => t).map(tag => new RegExp(tag, 'i'))
+      : [new RegExp(q.trim(), 'i')];
+      
+    // 3. ดึงผลลัพธ์จาก Keyword Search
     let keywordMovies = [];
     try {
-      keywordMovies = await Movie.find({
+      const keywordConditions = regexTerms.map(regex => ({
         $or: [
           { title: regex },
+          { genres: regex },
           { synopsis: regex },
           { director: regex }
         ]
+      }));
+
+      keywordMovies = await Movie.find({
+        $or: keywordConditions
       })
       .limit(20)
       .select('-embedding')
@@ -63,32 +78,34 @@ export const searchMovies = async (req, res) => {
       console.error('Keyword search failed', err);
     }
 
-    // 2. ดึงผลลัพธ์จาก Vector Search (น้ำหนัก 70%)
+    // 4. ดึงผลลัพธ์จาก Vector Search (น้ำหนักแปรผัน)
     let vectorMovies = [];
-    try {
-      const embedding = await generateEmbedding(q);
-      vectorMovies = await Movie.aggregate([
-        {
-          $vectorSearch: {
-            index: "vector_index",
-            path: "embedding",
-            queryVector: embedding,
-            numCandidates: 100,
-            limit: 20
+    if (vectorWeight > 0) {
+      try {
+        const embedding = await generateEmbedding(q);
+        vectorMovies = await Movie.aggregate([
+          {
+            $vectorSearch: {
+              index: "vector_index",
+              path: "embedding",
+              queryVector: embedding,
+              numCandidates: 100,
+              limit: 20
+            }
+          },
+          {
+            $project: {
+              embedding: 0,
+              score: { $meta: "vectorSearchScore" }
+            }
           }
-        },
-        {
-          $project: {
-            embedding: 0,
-            score: { $meta: "vectorSearchScore" }
-          }
-        }
-      ]);
-    } catch (embedError) {
-      console.warn(`Vector search failed (${embedError.message}), relying purely on keyword search`);
+        ]);
+      } catch (embedError) {
+        console.warn(`Vector search failed (${embedError.message}), relying purely on keyword search`);
+      }
     }
 
-    // 3. ผสมผสานคะแนน (Hybrid Scoring)
+    // 5. ผสมผสานคะแนน (Hybrid Scoring) และจัดการ Fallback
     const movieMap = new Map();
 
     // ประมวลผลคะแนนฝั่ง Vector
@@ -96,7 +113,7 @@ export const searchMovies = async (req, res) => {
       const id = movie._id.toString();
       movieMap.set(id, {
         ...movie,
-        finalScore: (movie.score || 0) * 0.7 // น้ำหนัก 70%
+        finalScore: (movie.score || 0) * vectorWeight
       });
     });
 
@@ -105,11 +122,23 @@ export const searchMovies = async (req, res) => {
       const id = movie._id.toString();
       // จำลองคะแนนความแม่นยำของ Keyword 
       let keywordScore = 0.5; // คะแนนพื้นฐานกรณีเจอใน synopsis/director
-      if (movie.title.toLowerCase().includes(q.toLowerCase())) {
+      
+      const titleLower = movie.title.toLowerCase();
+      const genresLower = movie.genres ? movie.genres.map(g => g.toLowerCase()) : [];
+      const searchTerms = q.includes(',') 
+        ? q.split(',').map(t => t.trim().toLowerCase()).filter(t => t) 
+        : [q.trim().toLowerCase()];
+      
+      const titleMatch = searchTerms.some(term => titleLower.includes(term));
+      const genreMatch = searchTerms.some(term => genresLower.some(g => g.includes(term)));
+
+      if (titleMatch) {
         keywordScore = 1.0; // หากเจอในชื่อเรื่อง ให้คะแนนเต็ม
+      } else if (genreMatch) {
+        keywordScore = 0.8; // หากเจอใน genres ให้คะแนนสูง
       }
       
-      const weightedKeywordScore = keywordScore * 0.3; // น้ำหนัก 30%
+      const weightedKeywordScore = keywordScore * keywordWeight;
 
       if (movieMap.has(id)) {
         const existing = movieMap.get(id);
@@ -122,12 +151,18 @@ export const searchMovies = async (req, res) => {
       }
     });
 
-    // 4. เรียงลำดับตามคะแนนรวม และเลือก 10 อันดับแรก
+    // 6. เรียงลำดับตามคะแนนรวม และเลือก 10 อันดับแรก
     const sortedMovies = Array.from(movieMap.values())
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, 10);
 
-    res.status(200).json({ movies: sortedMovies });
+    res.status(200).json({ 
+      movies: sortedMovies,
+      meta: {
+        isShortQuery,
+        weights: { keyword: keywordWeight, vector: vectorWeight }
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
