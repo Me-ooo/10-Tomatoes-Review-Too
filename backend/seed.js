@@ -55,7 +55,7 @@ const seedDB = async () => {
       };
 
       console.log(`Generating embedding for: ${movie.title}`);
-      const embedding = await generateEmbedding(movie.synopsis);
+      const embedding = await generateEmbedding(movie.synopsis, false);
       movie.embedding = embedding;
 
       await Movie.create(movie);

@@ -82,7 +82,7 @@ export const searchMovies = async (req, res) => {
     let vectorMovies = [];
     if (vectorWeight > 0) {
       try {
-        const embedding = await generateEmbedding(q);
+        const embedding = await generateEmbedding(q, true);
         vectorMovies = await Movie.aggregate([
           {
             $vectorSearch: {

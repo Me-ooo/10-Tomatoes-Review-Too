@@ -5,11 +5,12 @@ dotenv.config();
 
 const hf = new HfInference(process.env.HF_TOKEN);
 
-export async function generateEmbedding(text) {
+export async function generateEmbedding(text, isQuery = false) {
   try {
+    const formattedText = (isQuery ? 'query: ' : 'passage: ') + text;
     const result = await hf.featureExtraction({
-      model: 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
-      inputs: text,
+      model: 'intfloat/multilingual-e5-small',
+      inputs: formattedText,
     });
 
     // Convert multi-dimensional array to 1D Array if necessary

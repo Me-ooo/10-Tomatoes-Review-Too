@@ -23,7 +23,7 @@ export const createMovie = async (req, res) => {
     // สร้าง Vector Embedding จากพล็อตเรื่อง
     if (movieData.synopsis) {
       try {
-        movieData.embedding = await generateEmbedding(movieData.synopsis);
+        movieData.embedding = await generateEmbedding(movieData.synopsis, false);
       } catch (err) {
         console.error('Failed to generate embedding during movie creation:', err);
       }
@@ -49,7 +49,7 @@ export const updateMovie = async (req, res) => {
     // หากมีการแก้ไขพล็อตเรื่อง ให้คำนวณ Embedding ใหม่
     if (movieData.synopsis && movieData.synopsis !== oldMovie.synopsis) {
       try {
-        movieData.embedding = await generateEmbedding(movieData.synopsis);
+        movieData.embedding = await generateEmbedding(movieData.synopsis, false);
       } catch (err) {
         console.error('Failed to update embedding during movie update:', err);
       }
