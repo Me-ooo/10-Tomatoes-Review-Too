@@ -94,10 +94,10 @@ export const searchMovies = async (req, res) => {
             }
           },
           {
-            $project: {
-              embedding: 0,
-              score: { $meta: "vectorSearchScore" }
-            }
+            $set: { score: { $meta: "vectorSearchScore" } }
+          },
+          {
+            $unset: "embedding"
           }
         ]);
         
@@ -111,53 +111,78 @@ export const searchMovies = async (req, res) => {
     // 5. ผสมผสานคะแนน (Hybrid Scoring) และจัดการ Fallback
     const movieMap = new Map();
 
-    // ประมวลผลคะแนนฝั่ง Vector
+    // รวบรวมหนังทั้งหมดลง Map ก่อน
     vectorMovies.forEach(movie => {
       const id = movie._id.toString();
       movieMap.set(id, {
         ...movie,
         vectorScore: movie.score || 0,
         keywordScore: 0,
-        finalScore: (movie.score || 0) * vectorWeight
+        finalScore: 0,
+        fromKeyword: false
       });
     });
 
-    // Smart Genre Mapping (คำภาษาไทย -> หมวดหมู่สากล)
-    const genreMap = { 
-      "ผี": "horror", "สยอง": "horror", 
-      "ตลก": "comedy", "ฮา": "comedy", "ฟีลกู๊ด": "comedy",
-      "เศร้า": "drama", "น้ำตา": "drama", "ร้องไห้": "drama", 
-      "บู๊": "action", 
-      "รัก": "romance", 
-      "แฟนตาซี": "fantasy", 
-      "การ์ตูน": "animation", 
-      "อวกาศ": "sci-fi",
-      "ครอบครัว": "family", "อบอุ่น": "family"
-    };
-
-    // ประมวลผลคะแนนฝั่ง Keyword
     keywordMovies.forEach(movie => {
       const id = movie._id.toString();
-      // จำลองคะแนนความแม่นยำของ Keyword 
-      let keywordScore = 0.5; // คะแนนพื้นฐานกรณีเจอใน synopsis/director
+      if (!movieMap.has(id)) {
+        movieMap.set(id, {
+          ...movie,
+          vectorScore: 0,
+          keywordScore: 0,
+          finalScore: 0,
+          fromKeyword: true
+        });
+      } else {
+        movieMap.get(id).fromKeyword = true;
+      }
+    });
+
+    // Smart Genre Mapping (คำภาษาไทย -> หมวดหมู่สากล) รองรับ 2 ภาษา
+    const genreMap = {
+      "ผี": ["horror", "สยองขวัญ"],
+      "สยอง": ["horror", "สยองขวัญ"],
+      "ตลก": ["comedy", "ตลก"],
+      "ฮา": ["comedy", "ตลก"],
+      "ฟีลกู๊ด": ["comedy", "ตลก"],
+      "เศร้า": ["drama", "ดราม่า"],
+      "น้ำตา": ["drama", "ดราม่า"],
+      "ร้องไห้": ["drama", "ดราม่า"],
+      "บู๊": ["action", "แอคชั่น"],
+      "รัก": ["romance", "โรแมนติก"],
+      "แฟนตาซี": ["fantasy", "แฟนตาซี"],
+      "การ์ตูน": ["animation", "แอนิเมชัน"],
+      "อวกาศ": ["sci-fi", "ไซไฟ"],
+      "ครอบครัว": ["family", "ครอบครัว"],
+      "อบอุ่น": ["family", "ครอบครัว"]
+    };
+
+    const searchTerms = q.includes(',') 
+      ? q.split(',').map(t => t.trim().toLowerCase()).filter(t => t) 
+      : [q.trim().toLowerCase()];
+
+    // ประมวลผลคะแนนให้หนัง *ทุกเรื่อง* แบบ Global Scoring
+    for (const [id, movie] of movieMap.entries()) {
+      let keywordScore = 0;
       
-      const titleLower = movie.title.toLowerCase();
+      // ให้คะแนนพื้นฐานถ้าหนังถูกดึงมาจากการค้นหาด้วย Keyword ปกติ
+      if (movie.fromKeyword) {
+        keywordScore = 0.5;
+      }
+      
+      const titleLower = movie.title ? movie.title.toLowerCase() : '';
       const genresLower = movie.genres ? movie.genres.map(g => g.toLowerCase()) : [];
       const tagsLower = movie.tags ? movie.tags.map(t => t.toLowerCase()) : [];
-      const searchTerms = q.includes(',') 
-        ? q.split(',').map(t => t.trim().toLowerCase()).filter(t => t) 
-        : [q.trim().toLowerCase()];
       
       const titleMatch = searchTerms.some(term => titleLower.includes(term));
       
-      // 1. ตรวจสอบ Smart Genre Mapping (Case Insensitive & Exact Match)
+      // 1. ตรวจสอบ Smart Genre Mapping (Bilingual Array Match)
       let smartGenreMatch = false;
       for (const term of searchTerms) {
-        for (const [key, mappedGenre] of Object.entries(genreMap)) {
+        for (const [key, mappedGenres] of Object.entries(genreMap)) {
           if (term.includes(key)) {
-            const targetGenre = mappedGenre.toLowerCase();
-            const matchInGenres = movie.genres ? movie.genres.some(g => g.toLowerCase() === targetGenre) : false;
-            const matchInTags = movie.tags ? movie.tags.some(t => t.toLowerCase() === targetGenre) : false;
+            const matchInGenres = movie.genres ? movie.genres.some(g => mappedGenres.some(mg => mg.toLowerCase() === g.toLowerCase())) : false;
+            const matchInTags = movie.tags ? movie.tags.some(t => mappedGenres.some(mg => mg.toLowerCase() === t.toLowerCase())) : false;
             
             if (matchInGenres || matchInTags) {
               smartGenreMatch = true;
@@ -181,21 +206,9 @@ export const searchMovies = async (req, res) => {
         keywordScore = 1.0; // หากเจอในชื่อเรื่อง ให้คะแนนปกติ
       }
       
-      const weightedKeywordScore = keywordScore * keywordWeight;
-
-      if (movieMap.has(id)) {
-        const existing = movieMap.get(id);
-        existing.keywordScore = keywordScore;
-        existing.finalScore += weightedKeywordScore; // รวมคะแนน
-      } else {
-        movieMap.set(id, {
-          ...movie,
-          vectorScore: 0,
-          keywordScore: keywordScore,
-          finalScore: weightedKeywordScore
-        });
-      }
-    });
+      movie.keywordScore = keywordScore;
+      movie.finalScore = (movie.vectorScore * vectorWeight) + (keywordScore * keywordWeight);
+    }
 
     // 6. คัดกรองด้วย Dynamic Threshold และเรียงลำดับ
     const sortedMovies = Array.from(movieMap.values())
