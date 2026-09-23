@@ -45,8 +45,8 @@ export const searchMovies = async (req, res) => {
     }
 
     // 1. ตรวจสอบลักษณะคำค้นหา (Query Analysis)
-    const wordsCount = q.trim().split(/\s+/).length;
-    const isShortQuery = wordsCount < 3 || q.trim().length < 15 || q.includes(',');
+    // สำหรับภาษาไทย ห้ามใช้การเว้นวรรคนับคำ ให้ดูความยาวหรือลูกน้ำแทน
+    const isShortQuery = q.trim().length < 15 || q.includes(',');
 
     // 2. ปรับน้ำหนัก (Dynamic Weights)
     const keywordWeight = isShortQuery ? 1.0 : 0.3;
@@ -151,8 +151,10 @@ export const searchMovies = async (req, res) => {
       }
     });
 
-    // 6. เรียงลำดับตามคะแนนรวม และเลือก 10 อันดับแรก
+    // 6. คัดกรองด้วย Minimum Score Threshold และเรียงลำดับ
+    const MIN_SCORE_THRESHOLD = 0.5;
     const sortedMovies = Array.from(movieMap.values())
+      .filter(movie => movie.finalScore >= MIN_SCORE_THRESHOLD)
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, 10);
 
