@@ -101,8 +101,8 @@ export const searchMovies = async (req, res) => {
           }
         ]);
         
-        // ลดเกณฑ์ Vector เพื่อให้หนังเข้ารับโบนัส Keyword ได้ (คัดเฉพาะ >= 0.80)
-        vectorMovies = rawVectorMovies.filter(m => m.score >= 0.80);
+        // ลดเกณฑ์ Vector เพื่อให้หนังเข้ารับโบนัส Keyword ได้ (คัดเฉพาะ >= 0.72)
+        vectorMovies = rawVectorMovies.filter(m => m.score >= 0.72);
       } catch (embedError) {
         console.warn(`Vector search failed (${embedError.message}), relying purely on keyword search`);
       }
@@ -189,7 +189,7 @@ export const searchMovies = async (req, res) => {
     // 6. คัดกรองด้วย Dynamic Threshold และเรียงลำดับ
     const sortedMovies = Array.from(movieMap.values())
       .filter(movie => {
-        const threshold = movie.keywordScore === 0 ? 0.655 : 0.60;
+        const threshold = movie.keywordScore === 0 ? 0.56 : 0.48;
         return movie.finalScore >= threshold;
       })
       .sort((a, b) => b.finalScore - a.finalScore)
