@@ -143,26 +143,37 @@ export const searchMovies = async (req, res) => {
       
       const titleLower = movie.title.toLowerCase();
       const genresLower = movie.genres ? movie.genres.map(g => g.toLowerCase()) : [];
+      const tagsLower = movie.tags ? movie.tags.map(t => t.toLowerCase()) : [];
       const searchTerms = q.includes(',') 
         ? q.split(',').map(t => t.trim().toLowerCase()).filter(t => t) 
         : [q.trim().toLowerCase()];
       
       const titleMatch = searchTerms.some(term => titleLower.includes(term));
       
-      // 1. ตรวจสอบ Smart Genre Mapping
+      // 1. ตรวจสอบ Smart Genre Mapping (Case Insensitive & Exact Match)
       let smartGenreMatch = false;
       for (const term of searchTerms) {
         for (const [key, mappedGenre] of Object.entries(genreMap)) {
-          if (term.includes(key) && genresLower.some(g => g.includes(mappedGenre))) {
-            smartGenreMatch = true;
-            break;
+          if (term.includes(key)) {
+            const targetGenre = mappedGenre.toLowerCase();
+            const matchInGenres = movie.genres ? movie.genres.some(g => g.toLowerCase() === targetGenre) : false;
+            const matchInTags = movie.tags ? movie.tags.some(t => t.toLowerCase() === targetGenre) : false;
+            
+            if (matchInGenres || matchInTags) {
+              smartGenreMatch = true;
+              break;
+            }
           }
         }
         if (smartGenreMatch) break;
       }
 
       // 2. เช็คว่ามีคำที่ตรงกับ genres/tags ปกติหรือไม่
-      const normalGenreMatch = searchTerms.some(term => genresLower.some(g => g.includes(term) || term.includes(g)));
+      const normalGenreMatch = searchTerms.some(term => {
+        const matchGenres = genresLower.some(g => g.includes(term) || term.includes(g));
+        const matchTags = tagsLower.some(t => t.includes(term) || term.includes(t));
+        return matchGenres || matchTags;
+      });
 
       if (smartGenreMatch || normalGenreMatch) {
         keywordScore = 3.0; // โบนัสพิเศษ บังคับให้ทะยานขึ้นอันดับ 1
