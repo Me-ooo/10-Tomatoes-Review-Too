@@ -101,8 +101,8 @@ export const searchMovies = async (req, res) => {
           }
         ]);
         
-        // ขยับ Vector Threshold ให้เข้มงวดสุดขีด (คัดเฉพาะ >= 0.84)
-        vectorMovies = rawVectorMovies.filter(m => m.score >= 0.84);
+        // ขยับ Vector Threshold ให้เข้มงวดสุดขีด (คัดเฉพาะ >= 0.93)
+        vectorMovies = rawVectorMovies.filter(m => m.score >= 0.93);
       } catch (embedError) {
         console.warn(`Vector search failed (${embedError.message}), relying purely on keyword search`);
       }
@@ -122,6 +122,18 @@ export const searchMovies = async (req, res) => {
       });
     });
 
+    // Smart Genre Mapping (คำภาษาไทย -> หมวดหมู่สากล)
+    const genreMap = { 
+      "ผี": "horror", "สยอง": "horror", 
+      "ตลก": "comedy", "ฮา": "comedy", 
+      "เศร้า": "drama", "น้ำตา": "drama", "ร้องไห้": "drama", 
+      "บู๊": "action", 
+      "รัก": "romance", 
+      "แฟนตาซี": "fantasy", 
+      "การ์ตูน": "animation", 
+      "อวกาศ": "sci-fi" 
+    };
+
     // ประมวลผลคะแนนฝั่ง Keyword
     keywordMovies.forEach(movie => {
       const id = movie._id.toString();
@@ -135,10 +147,23 @@ export const searchMovies = async (req, res) => {
         : [q.trim().toLowerCase()];
       
       const titleMatch = searchTerms.some(term => titleLower.includes(term));
-      // เช็คว่ามีคำที่ตรงกับ genres/tags หรือไม่ (ทั้งแบบซ่อนอยู่หรือตรงตัว)
-      const genreMatch = searchTerms.some(term => genresLower.some(g => g.includes(term) || term.includes(g)));
+      
+      // 1. ตรวจสอบ Smart Genre Mapping
+      let smartGenreMatch = false;
+      for (const term of searchTerms) {
+        for (const [key, mappedGenre] of Object.entries(genreMap)) {
+          if (term.includes(key) && genresLower.some(g => g.includes(mappedGenre))) {
+            smartGenreMatch = true;
+            break;
+          }
+        }
+        if (smartGenreMatch) break;
+      }
 
-      if (genreMatch) {
+      // 2. เช็คว่ามีคำที่ตรงกับ genres/tags ปกติหรือไม่
+      const normalGenreMatch = searchTerms.some(term => genresLower.some(g => g.includes(term) || term.includes(g)));
+
+      if (smartGenreMatch || normalGenreMatch) {
         keywordScore = 3.0; // โบนัสพิเศษ บังคับให้ทะยานขึ้นอันดับ 1
       } else if (titleMatch) {
         keywordScore = 1.0; // หากเจอในชื่อเรื่อง ให้คะแนนปกติ
