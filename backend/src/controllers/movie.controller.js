@@ -46,7 +46,7 @@ export const searchMovies = async (req, res) => {
 
     // 1. ตรวจสอบลักษณะคำค้นหา (Query Analysis)
     // สำหรับภาษาไทย ห้ามใช้การเว้นวรรคนับคำ ให้ดูความยาวหรือลูกน้ำแทน
-    const isShortQuery = q.trim().length < 15 || q.includes(',');
+    const isShortQuery = q.trim().length < 12 || q.includes(',');
 
     // 2. ปรับน้ำหนัก (Dynamic Weights)
     const keywordWeight = isShortQuery ? 1.0 : 0.3;
@@ -101,8 +101,8 @@ export const searchMovies = async (req, res) => {
           }
         ]);
         
-        // ขยับ Vector Threshold ให้เข้มงวดสุดขีด (คัดเฉพาะ >= 0.93)
-        vectorMovies = rawVectorMovies.filter(m => m.score >= 0.93);
+        // ลดเกณฑ์ Vector เพื่อให้หนังเข้ารับโบนัส Keyword ได้ (คัดเฉพาะ >= 0.80)
+        vectorMovies = rawVectorMovies.filter(m => m.score >= 0.80);
       } catch (embedError) {
         console.warn(`Vector search failed (${embedError.message}), relying purely on keyword search`);
       }
@@ -186,7 +186,7 @@ export const searchMovies = async (req, res) => {
     });
 
     // 6. คัดกรองด้วย Minimum Score Threshold และเรียงลำดับ
-    const MIN_SCORE_THRESHOLD = 0.5;
+    const MIN_SCORE_THRESHOLD = 0.60;
     const sortedMovies = Array.from(movieMap.values())
       .filter(movie => movie.finalScore >= MIN_SCORE_THRESHOLD)
       .sort((a, b) => b.finalScore - a.finalScore)
