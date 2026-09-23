@@ -125,13 +125,14 @@ export const searchMovies = async (req, res) => {
     // Smart Genre Mapping (คำภาษาไทย -> หมวดหมู่สากล)
     const genreMap = { 
       "ผี": "horror", "สยอง": "horror", 
-      "ตลก": "comedy", "ฮา": "comedy", 
+      "ตลก": "comedy", "ฮา": "comedy", "ฟีลกู๊ด": "comedy",
       "เศร้า": "drama", "น้ำตา": "drama", "ร้องไห้": "drama", 
       "บู๊": "action", 
       "รัก": "romance", 
       "แฟนตาซี": "fantasy", 
       "การ์ตูน": "animation", 
-      "อวกาศ": "sci-fi" 
+      "อวกาศ": "sci-fi",
+      "ครอบครัว": "family", "อบอุ่น": "family"
     };
 
     // ประมวลผลคะแนนฝั่ง Keyword
@@ -185,10 +186,12 @@ export const searchMovies = async (req, res) => {
       }
     });
 
-    // 6. คัดกรองด้วย Minimum Score Threshold และเรียงลำดับ
-    const MIN_SCORE_THRESHOLD = 0.60;
+    // 6. คัดกรองด้วย Dynamic Threshold และเรียงลำดับ
     const sortedMovies = Array.from(movieMap.values())
-      .filter(movie => movie.finalScore >= MIN_SCORE_THRESHOLD)
+      .filter(movie => {
+        const threshold = movie.keywordScore === 0 ? 0.655 : 0.60;
+        return movie.finalScore >= threshold;
+      })
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, 10);
 
