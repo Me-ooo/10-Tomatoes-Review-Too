@@ -35,6 +35,7 @@ export async function getMovieById(id) {
 export async function semanticSearch(query) {
   const { data } = await api.get('/api/movies/search', {
     params: { q: query },
+    timeout: 30000,
   });
   return data.movies ?? [];
 }

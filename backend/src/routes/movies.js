@@ -5,6 +5,7 @@ const {
   listMovies,
   listTrending,
   getMovie,
+  searchMovies,
   createMovie,
 } = require('../controllers/moviesController');
 
@@ -18,6 +19,7 @@ function asyncHandler(handler) {
 
 router.get('/', cacheMiddleware, asyncHandler(listMovies));
 router.get('/trending', cacheMiddleware, asyncHandler(listTrending));
+router.get('/search', asyncHandler(searchMovies));
 router.get('/:id', asyncHandler(getMovie));
 router.post('/', verifyToken, isAdmin, asyncHandler(createMovie));
 

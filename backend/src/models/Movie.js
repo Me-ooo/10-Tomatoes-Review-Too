@@ -53,8 +53,7 @@ const movieSchema = new mongoose.Schema(
     },
     /**
      * Dense embedding used by MongoDB Atlas Vector Search.
-     * Default size matches OpenAI text-embedding-3-small (1536).
-     * If you switch to HuggingFace MiniLM, use 384 dimensions.
+     * sentence-transformers/all-MiniLM-L6-v2 produces 384 dimensions.
      */
     embedding: {
       type: [Number],

@@ -2,21 +2,8 @@ require('dotenv').config();
 
 const { connectDatabase } = require('./config/database');
 const { Movie } = require('./models/Movie');
+const { embedText, movieEmbeddingText } = require('./services/embeddings');
 const mongoose = require('mongoose');
-
-const EMBEDDING_DIMENSIONS = Number(process.env.EMBEDDING_DIMENSIONS || 1536);
-
-function dummyEmbedding(seed) {
-  const values = [];
-  let state = seed;
-
-  for (let i = 0; i < EMBEDDING_DIMENSIONS; i += 1) {
-    state = (state * 16807) % 2147483647;
-    values.push(Number(((state / 2147483647) * 2 - 1).toFixed(6)));
-  }
-
-  return values;
-}
 
 const movies = [
   {
@@ -31,7 +18,6 @@ const movies = [
     trailerUrl: 'https://www.youtube.com/watch?v=zSWdZVtXT7E',
     averageRating: 4.7,
     reviewCount: 1284,
-    embedding: dummyEmbedding(11),
   },
   {
     title: 'Arrival',
@@ -45,7 +31,6 @@ const movies = [
     trailerUrl: 'https://www.youtube.com/watch?v=tFMo3UJ4B4g',
     averageRating: 4.5,
     reviewCount: 902,
-    embedding: dummyEmbedding(23),
   },
   {
     title: 'Parasite',
@@ -59,7 +44,6 @@ const movies = [
     trailerUrl: 'https://www.youtube.com/watch?v=5xH0HfJHsaY',
     averageRating: 4.6,
     reviewCount: 2104,
-    embedding: dummyEmbedding(37),
   },
   {
     title: 'Spirited Away',
@@ -73,7 +57,6 @@ const movies = [
     trailerUrl: 'https://www.youtube.com/watch?v=ByXuk9QqQkk',
     averageRating: 4.8,
     reviewCount: 1877,
-    embedding: dummyEmbedding(41),
   },
   {
     title: 'The Grand Budapest Hotel',
@@ -87,15 +70,22 @@ const movies = [
     trailerUrl: 'https://www.youtube.com/watch?v=1Fg5iWmQjwk',
     averageRating: 4.3,
     reviewCount: 966,
-    embedding: dummyEmbedding(53),
   },
 ];
 
 async function seed() {
   await connectDatabase();
 
+  const withEmbeddings = [];
+
+  for (const movie of movies) {
+    const embedding = await embedText(movieEmbeddingText(movie));
+    withEmbeddings.push({ ...movie, embedding });
+    console.log(`Embedded ${movie.title} (${embedding.length} dims)`);
+  }
+
   await Movie.deleteMany({});
-  const inserted = await Movie.insertMany(movies);
+  const inserted = await Movie.insertMany(withEmbeddings);
 
   console.log(`Seeded ${inserted.length} movies:`);
   inserted.forEach((movie) => {
