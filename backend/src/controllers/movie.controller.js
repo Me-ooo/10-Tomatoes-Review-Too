@@ -83,7 +83,7 @@ export const searchMovies = async (req, res) => {
     if (vectorWeight > 0) {
       try {
         const embedding = await generateEmbedding(q, true);
-        vectorMovies = await Movie.aggregate([
+        const rawVectorMovies = await Movie.aggregate([
           {
             $vectorSearch: {
               index: "vector_index",
@@ -100,6 +100,9 @@ export const searchMovies = async (req, res) => {
             }
           }
         ]);
+        
+        // ขยับ Vector Threshold ให้เข้มงวดสุดขีด (คัดเฉพาะ >= 0.84)
+        vectorMovies = rawVectorMovies.filter(m => m.score >= 0.84);
       } catch (embedError) {
         console.warn(`Vector search failed (${embedError.message}), relying purely on keyword search`);
       }
@@ -113,6 +116,8 @@ export const searchMovies = async (req, res) => {
       const id = movie._id.toString();
       movieMap.set(id, {
         ...movie,
+        vectorScore: movie.score || 0,
+        keywordScore: 0,
         finalScore: (movie.score || 0) * vectorWeight
       });
     });
@@ -130,22 +135,26 @@ export const searchMovies = async (req, res) => {
         : [q.trim().toLowerCase()];
       
       const titleMatch = searchTerms.some(term => titleLower.includes(term));
-      const genreMatch = searchTerms.some(term => genresLower.some(g => g.includes(term)));
+      // เช็คว่ามีคำที่ตรงกับ genres/tags หรือไม่ (ทั้งแบบซ่อนอยู่หรือตรงตัว)
+      const genreMatch = searchTerms.some(term => genresLower.some(g => g.includes(term) || term.includes(g)));
 
-      if (titleMatch) {
-        keywordScore = 1.0; // หากเจอในชื่อเรื่อง ให้คะแนนเต็ม
-      } else if (genreMatch) {
-        keywordScore = 0.8; // หากเจอใน genres ให้คะแนนสูง
+      if (genreMatch) {
+        keywordScore = 3.0; // โบนัสพิเศษ บังคับให้ทะยานขึ้นอันดับ 1
+      } else if (titleMatch) {
+        keywordScore = 1.0; // หากเจอในชื่อเรื่อง ให้คะแนนปกติ
       }
       
       const weightedKeywordScore = keywordScore * keywordWeight;
 
       if (movieMap.has(id)) {
         const existing = movieMap.get(id);
+        existing.keywordScore = keywordScore;
         existing.finalScore += weightedKeywordScore; // รวมคะแนน
       } else {
         movieMap.set(id, {
           ...movie,
+          vectorScore: 0,
+          keywordScore: keywordScore,
           finalScore: weightedKeywordScore
         });
       }
@@ -157,6 +166,12 @@ export const searchMovies = async (req, res) => {
       .filter(movie => movie.finalScore >= MIN_SCORE_THRESHOLD)
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, 10);
+
+    // Log เพื่อดูคะแนน
+    console.log(`\n--- Search Results for: "${q}" ---`);
+    sortedMovies.forEach((m, idx) => {
+      console.log(`[${idx+1}] Title: ${m.title} | Vector: ${m.vectorScore?.toFixed(4) || '0.0000'} | Keyword: ${m.keywordScore?.toFixed(4) || '0.0000'} | Final: ${m.finalScore?.toFixed(4) || '0.0000'}`);
+    });
 
     res.status(200).json({ 
       movies: sortedMovies,
