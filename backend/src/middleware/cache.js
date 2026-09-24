@@ -50,9 +50,18 @@ export function cache(options = {}) {
       res.set('X-Cache', 'MISS');
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
-        redis.set(key, JSON.stringify(body), 'EX', ttl).catch((err) => {
-          console.error('Redis cache write failed:', err.message);
-        });
+        let isEmpty = false;
+        if (body && Array.isArray(body.movies) && body.movies.length === 0) {
+          isEmpty = true;
+        } else if (Array.isArray(body) && body.length === 0) {
+          isEmpty = true;
+        }
+
+        if (!isEmpty) {
+          redis.set(key, JSON.stringify(body), 'EX', ttl).catch((err) => {
+            console.error('Redis cache write failed:', err.message);
+          });
+        }
       }
 
       return originalJson(body);

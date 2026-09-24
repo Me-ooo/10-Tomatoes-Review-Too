@@ -180,7 +180,7 @@ export const searchMovies = async (req, res) => {
       let smartGenreMatch = false;
       for (const term of searchTerms) {
         for (const [key, mappedGenres] of Object.entries(genreMap)) {
-          if (term.includes(key)) {
+          if (term.includes(key.toLowerCase())) {
             const matchInGenres = movie.genres ? movie.genres.some(g => mappedGenres.some(mg => mg.toLowerCase() === g.toLowerCase())) : false;
             const matchInTags = movie.tags ? movie.tags.some(t => mappedGenres.some(mg => mg.toLowerCase() === t.toLowerCase())) : false;
             
@@ -220,14 +220,21 @@ export const searchMovies = async (req, res) => {
       .slice(0, 10);
 
     // 7. Fallback Result
+    let usedDbFallback = false;
     if (sortedMovies.length === 0) {
-      sortedMovies = Array.from(movieMap.values())
-        .sort((a, b) => b.finalScore - a.finalScore)
-        .slice(0, 10);
+      usedDbFallback = true;
+      sortedMovies = await Movie.find()
+        .sort({ averageRating: -1, reviewCount: -1 })
+        .limit(10)
+        .select('-embedding')
+        .lean();
     }
 
     // Log เพื่อดูคะแนน
     console.log(`\n--- Search Results for: "${q}" ---`);
+    console.log(`[Info] Vector Search matched: ${vectorMovies.length} movies`);
+    console.log(`[Info] Keyword Search matched: ${keywordMovies.length} movies`);
+    console.log(`[Info] Database Fallback used: ${usedDbFallback}`);
     sortedMovies.forEach((m, idx) => {
       console.log(`[${idx+1}] Title: ${m.title} | Vector: ${m.vectorScore?.toFixed(4) || '0.0000'} | Keyword: ${m.keywordScore?.toFixed(4) || '0.0000'} | Final: ${m.finalScore?.toFixed(4) || '0.0000'}`);
     });
