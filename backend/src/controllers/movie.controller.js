@@ -44,13 +44,9 @@ export const searchMovies = async (req, res) => {
       return res.status(400).json({ message: 'Search query is required' });
     }
 
-    // 1. ตรวจสอบลักษณะคำค้นหา (Query Analysis)
-    // สำหรับภาษาไทย ห้ามใช้การเว้นวรรคนับคำ ให้ดูความยาวหรือลูกน้ำแทน
-    const isShortQuery = q.trim().length < 12 || q.includes(',');
-
-    // 2. ปรับน้ำหนัก (Dynamic Weights)
-    const keywordWeight = isShortQuery ? 1.0 : 0.3;
-    const vectorWeight = isShortQuery ? 0.0 : 0.7;
+    // 1. กำหนดน้ำหนักคะแนนคงที่ (Fixed Weights)
+    const keywordWeight = 0.3;
+    const vectorWeight = 0.7;
 
     let regexTerms = q.includes(',') 
       ? q.split(',').map(t => t.trim()).filter(t => t).map(tag => new RegExp(tag, 'i'))
@@ -239,7 +235,6 @@ export const searchMovies = async (req, res) => {
     res.status(200).json({ 
       movies: sortedMovies,
       meta: {
-        isShortQuery,
         weights: { keyword: keywordWeight, vector: vectorWeight }
       }
     });

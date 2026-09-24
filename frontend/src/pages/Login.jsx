@@ -44,9 +44,9 @@ export default function Login() {
         )}
 
         <label className="mt-6 block text-sm text-zinc-300">
-          Email
+          Email or Username
           <input
-            type="email"
+            type="text"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink px-3 py-2.5 text-white outline-none focus:border-tomato/70"

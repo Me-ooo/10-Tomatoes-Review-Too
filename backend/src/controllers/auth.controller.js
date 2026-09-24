@@ -41,7 +41,10 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select('+password');
+    // Check if the input is meant for email or username
+    const user = await User.findOne({ 
+      $or: [{ email: email }, { username: email }] 
+    }).select('+password');
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
