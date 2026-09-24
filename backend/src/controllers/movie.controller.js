@@ -154,7 +154,11 @@ export const searchMovies = async (req, res) => {
       "การ์ตูน": ["animation", "แอนิเมชัน"],
       "อวกาศ": ["sci-fi", "ไซไฟ"],
       "ครอบครัว": ["family", "ครอบครัว"],
-      "อบอุ่น": ["family", "ครอบครัว"]
+      "อบอุ่น": ["family", "ครอบครัว"],
+      "เอาชีวิตรอด": ["adventure", "ผจญภัย", "action", "แอ็คชั่น", "thriller", "ระทึกขวัญ"],
+      "รอดชีวิต": ["adventure", "ผจญภัย", "action", "แอ็คชั่น"],
+      "ป่า": ["adventure", "ผจญภัย"],
+      "ผจญภัย": ["adventure", "ผจญภัย"]
     };
 
     const searchTerms = q.includes(',') 
@@ -211,13 +215,20 @@ export const searchMovies = async (req, res) => {
     }
 
     // 6. คัดกรองด้วย Dynamic Threshold และเรียงลำดับ
-    const sortedMovies = Array.from(movieMap.values())
+    let sortedMovies = Array.from(movieMap.values())
       .filter(movie => {
-        const threshold = movie.keywordScore === 0 ? 0.56 : 0.48;
+        const threshold = movie.keywordScore === 0 ? 0.50 : 0.48;
         return movie.finalScore >= threshold;
       })
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, 10);
+
+    // 7. Fallback Result
+    if (sortedMovies.length === 0) {
+      sortedMovies = Array.from(movieMap.values())
+        .sort((a, b) => b.finalScore - a.finalScore)
+        .slice(0, 3);
+    }
 
     // Log เพื่อดูคะแนน
     console.log(`\n--- Search Results for: "${q}" ---`);
