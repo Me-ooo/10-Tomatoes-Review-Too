@@ -48,11 +48,47 @@ export const searchMovies = async (req, res) => {
     const keywordWeight = 0.3;
     const vectorWeight = 0.7;
 
-    let regexTerms = q.includes(',') 
-      ? q.split(',').map(t => t.trim()).filter(t => t).map(tag => new RegExp(tag, 'i'))
-      : [new RegExp(q.trim(), 'i')];
+    // Smart Genre Mapping (คำภาษาไทย -> หมวดหมู่สากล) รองรับ 2 ภาษา
+    const genreMap = {
+      "ผี": ["horror", "สยองขวัญ"],
+      "สยอง": ["horror", "สยองขวัญ"],
+      "ตลก": ["comedy", "ตลก"],
+      "ฮา": ["comedy", "ตลก"],
+      "ฟีลกู๊ด": ["comedy", "ตลก"],
+      "เศร้า": ["drama", "ดราม่า"],
+      "น้ำตา": ["drama", "ดราม่า"],
+      "ร้องไห้": ["drama", "ดราม่า"],
+      "บู๊": ["action", "แอคชั่น"],
+      "รัก": ["romance", "โรแมนติก"],
+      "แฟนตาซี": ["fantasy", "แฟนตาซี"],
+      "การ์ตูน": ["animation", "แอนิเมชัน"],
+      "อวกาศ": ["sci-fi", "ไซไฟ"],
+      "ครอบครัว": ["family", "ครอบครัว"],
+      "อบอุ่น": ["family", "ครอบครัว"],
+      "เอาชีวิตรอด": ["adventure", "ผจญภัย", "action", "แอ็คชั่น", "thriller", "ระทึกขวัญ"],
+      "รอดชีวิต": ["adventure", "ผจญภัย", "action", "แอ็คชั่น"],
+      "ป่า": ["adventure", "ผจญภัย"],
+      "ผจญภัย": ["adventure", "ผจญภัย"]
+    };
+
+    // ปรับปรุง Keyword Search ให้รองรับการตัดคำ (Tokenization)
+    let textTokens = q.includes(',') 
+      ? q.split(',').map(t => t.trim()).filter(t => t)
+      : [q.trim(), ...q.split(' ').map(t => t.trim()).filter(t => t)];
+    
+    textTokens = [...new Set(textTokens)]; // Remove duplicates
+    let regexTerms = textTokens.map(tag => new RegExp(tag, 'i'));
+
+    // ดึง Keyword เพื่อหา Smart Genre
+    let targetGenres = [];
+    const searchTermsLower = q.toLowerCase();
+    for (const [key, mappedGenres] of Object.entries(genreMap)) {
+      if (searchTermsLower.includes(key.toLowerCase())) {
+        targetGenres.push(...mappedGenres);
+      }
+    }
       
-    // 3. ดึงผลลัพธ์จาก Keyword Search
+    // 3. ดึงผลลัพธ์จาก Keyword Search และ Smart Genre
     let keywordMovies = [];
     try {
       const keywordConditions = regexTerms.map(regex => ({
@@ -63,6 +99,12 @@ export const searchMovies = async (req, res) => {
           { director: regex }
         ]
       }));
+
+      // เพิ่ม Smart Genre Database Query
+      if (targetGenres.length > 0) {
+        const genreRegexes = targetGenres.map(g => new RegExp(`^${g}$`, 'i'));
+        keywordConditions.push({ genres: { $in: genreRegexes } });
+      }
 
       keywordMovies = await Movie.find({
         $or: keywordConditions
@@ -100,6 +142,7 @@ export const searchMovies = async (req, res) => {
         // ลดเกณฑ์ Vector เพื่อให้หนังเข้ารับโบนัส Keyword ได้ (คัดเฉพาะ >= 0.72)
         vectorMovies = rawVectorMovies.filter(m => m.score >= 0.72);
       } catch (embedError) {
+        console.error('Vector search failed with error:', embedError);
         console.warn(`Vector search failed (${embedError.message}), relying purely on keyword search`);
       }
     }
@@ -134,28 +177,7 @@ export const searchMovies = async (req, res) => {
       }
     });
 
-    // Smart Genre Mapping (คำภาษาไทย -> หมวดหมู่สากล) รองรับ 2 ภาษา
-    const genreMap = {
-      "ผี": ["horror", "สยองขวัญ"],
-      "สยอง": ["horror", "สยองขวัญ"],
-      "ตลก": ["comedy", "ตลก"],
-      "ฮา": ["comedy", "ตลก"],
-      "ฟีลกู๊ด": ["comedy", "ตลก"],
-      "เศร้า": ["drama", "ดราม่า"],
-      "น้ำตา": ["drama", "ดราม่า"],
-      "ร้องไห้": ["drama", "ดราม่า"],
-      "บู๊": ["action", "แอคชั่น"],
-      "รัก": ["romance", "โรแมนติก"],
-      "แฟนตาซี": ["fantasy", "แฟนตาซี"],
-      "การ์ตูน": ["animation", "แอนิเมชัน"],
-      "อวกาศ": ["sci-fi", "ไซไฟ"],
-      "ครอบครัว": ["family", "ครอบครัว"],
-      "อบอุ่น": ["family", "ครอบครัว"],
-      "เอาชีวิตรอด": ["adventure", "ผจญภัย", "action", "แอ็คชั่น", "thriller", "ระทึกขวัญ"],
-      "รอดชีวิต": ["adventure", "ผจญภัย", "action", "แอ็คชั่น"],
-      "ป่า": ["adventure", "ผจญภัย"],
-      "ผจญภัย": ["adventure", "ผจญภัย"]
-    };
+    // Smart Genre Mapping moved to top
 
     const searchTerms = q.includes(',') 
       ? q.split(',').map(t => t.trim().toLowerCase()).filter(t => t) 
