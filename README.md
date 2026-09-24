@@ -73,3 +73,10 @@ npm run dev
 ```
 
 Vite proxies `/api` to `http://localhost:5000`. If trending is empty, Home shows preview posters until the backend returns real movies.
+.env
+PORT=5000
+MONGODB_URI=mongodb://ohm132548_db_user:uxHSQuOa0h1jfDo6@ac-0t51ffo-shard-00-00.xumxtjb.mongodb.net:27017,ac-0t51ffo-shard-00-01.xumxtjb.mongodb.net:27017,ac-0t51ffo-shard-00-02.xumxtjb.mongodb.net:27017/?ssl=true&replicaSet=atlas-pmwj51-shard-0&authSource=admin&appName=Cluster0
+JWT_SECRET=10_tomatoes_super_secret_key_2026
+
+HF_TOKEN=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
+TMDB_TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiMDQ0ZmRiMzhlNDFkNDE4MTFiODk2OTU1OTYyNDg1MSIsIm5iZiI6MTc4OTcxOTc3Mi40MzcsInN1YiI6IjZhYWNmNGRjN2ZjNWYxOWVjOTViZDIyOSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.kGEN7C7oVKrh-tJCtG5bgz0JzkOJKnsYWd1n2AAx100
