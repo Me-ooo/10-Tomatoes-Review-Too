@@ -7,7 +7,7 @@ export const getTrendingMovies = async (req, res) => {
     // Get top 10 movies based on averageRating and reviewCount (or just recent ones)
     // Here we query from MongoDB and exclude the vector embedding field
     const movies = await Movie.find()
-      .sort({ averageRating: -1, reviewCount: -1 })
+      .sort({ reviewCount: -1, averageRating: -1 })
       .limit(10)
       .select('-embedding');
 
@@ -238,7 +238,15 @@ export const searchMovies = async (req, res) => {
         const threshold = movie.keywordScore === 0 ? 0.50 : 0.48;
         return movie.finalScore >= threshold;
       })
-      .sort((a, b) => b.finalScore - a.finalScore)
+      .sort((a, b) => {
+        if (Math.abs(b.finalScore - a.finalScore) > 0.01) {
+          return b.finalScore - a.finalScore;
+        }
+        if (b.reviewCount !== a.reviewCount) {
+          return (b.reviewCount || 0) - (a.reviewCount || 0);
+        }
+        return (b.averageRating || 0) - (a.averageRating || 0);
+      })
       .slice(0, 10);
 
     // 7. Fallback Result
@@ -246,7 +254,7 @@ export const searchMovies = async (req, res) => {
     if (sortedMovies.length === 0) {
       usedDbFallback = true;
       sortedMovies = await Movie.find()
-        .sort({ averageRating: -1, reviewCount: -1 })
+        .sort({ reviewCount: -1, averageRating: -1 })
         .limit(10)
         .select('-embedding')
         .lean();
