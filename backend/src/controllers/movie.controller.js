@@ -223,7 +223,7 @@ export const searchMovies = async (req, res) => {
     if (sortedMovies.length === 0) {
       sortedMovies = Array.from(movieMap.values())
         .sort((a, b) => b.finalScore - a.finalScore)
-        .slice(0, 3);
+        .slice(0, 10);
     }
 
     // Log เพื่อดูคะแนน
